@@ -1,0 +1,65 @@
+
+
+
+mm_init: sets flist_first to NULL, then creates and allocates 
+the prolouge and epilouge blocks
+
+
+mm_malloc: I use a helper function, mm_extend_heap, 
+to extend the heap when more memory is needed and ensure 
+heap stays consistent by moving epilouge to the extend.
+
+On the first call, I immediately extend the heap, and return
+the payload of the block returned by mm_extend_heap.
+Otherwise, I search through each block in the free list 
+for the first block that is big enough. If the block
+is large enough, I check if splitting is possible 
+to reduce internal fragmentation, and then return the block's
+payload.
+
+If no single free block is large enough, I extend the heap.
+
+mm_free: I get the block containing the payload pointed to by ptr,
+and coalesce with its contiguous blocks (when they are free). The block(s)
+are then inserted into the free list.
+
+
+mm_check_heap: 
+My check heap function ensures heap consistentcy by first
+asserting the prolouge and epilouge blocks are at the start and end
+of the heap respectively, and for each other block in the heap,
+checks for the following errors:
+    - The block is outside the bounds of the heap
+    - The block's size is less than MINBLOCKSIZE
+    - Mismatched tags on both ends of a block
+    - Discontinuity of blocks (i.e. the prev's blocks
+        next block is not the current block or
+        the next block's previous block is not the current block)
+    - Contiguous free blocks that aren't coalesced
+    - Free blocks that are not present in the free list
+    - Blocks in the free list that are not marked as free
+Upon encountering any of these errors, it prints the block's address,
+the kind of error, and the block size
+
+
+mm_realloc: 
+There are two major cases to handle in realloc.
+Either the requested size is larger than the size of the
+original memory (referred to as b_size) 
+or it is less than (or equal to) b_size. 
+In the latter case, check if splitting is possible 
+(and shrink the block to the requested size if so) and
+return the original block's payload.
+
+In the former case, check both neighbors for free status
+and whether their combined size(s) is enough for the request.
+In each sub case, check if splitting is possible to reduce 
+internal fragmentation. 
+
+Otherwise, I attempt to allocate more memory for the request,
+copying over the contents of the original block onto the new
+block.
+
+At the moment, there is a bug when I try and free the block after 
+memmove'ing its payload to the previous contiguous blocks payload. 
+ 
